@@ -1,0 +1,92 @@
+---
+title: 'Homework #1'
+author: "Matt Quintiere and Rohit Gunda"
+date: "2023-10-16"
+output: pdf_document
+---
+#Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries}
+library(tidyverse)
+library(tidymodels)
+library(knitr)
+library(palmerpenguins)
+view(penguins)
+```
+
+
+#Data Cleaning
+```{r original-dataset}
+penguins
+```
+
+```{r remove-na}
+#Removing NAs in the dataset
+penguins2 <- penguins[rowSums(is.na(penguins)) < 2, ]
+```
+
+```{r outliers}
+ggplot(penguins2,aes(x=species, y=bill_length_mm)) + 
+  geom_boxplot() 
+ggplot(penguins2,aes(x=species, y=bill_depth_mm)) + 
+  geom_boxplot() 
+penguins2 <- penguins2 %>% 
+  mutate(outlier = ifelse(bill_length_mm > 58, FALSE, TRUE))
+penguins2 <- penguins2 %>% 
+  filter(outlier == TRUE)
+penguins2 <- penguins2 %>% 
+  mutate(outlier2 = ifelse(bill_depth_mm > 21.2, FALSE, TRUE))
+penguins2 <- penguins2 %>% 
+  filter(outlier2 == TRUE)
+penguins2 <- penguins2 %>% 
+  select(species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year)
+```
+#Visualization
+```{r, message = FALSE}
+penguins2 %>% 
+  ggplot(aes(x = bill_length_mm, y = body_mass_g, color = species)) +
+  geom_point() +
+  labs(y = "Body Mass (Grams)",
+       x = "Bill Length (mm)",
+       title = "Relationship between Bill Length and Body Mass",
+       subtitle = "Seperated by Color",
+       color = "Species") +
+  geom_smooth(method = "lm")
+```
+
+```{r correlation plot}
+ggcorr(penguins2)
+```
+
+#PCA
+```{r}
+pca_penguins2 <- penguins2[,3:6]
+
+pca = prcomp(pca_penguins2, scale = T)
+summary(pca)
+```
+
+```{r}
+fviz_eig(pca, addlabels = TRUE)
+```
+With two components, we explain 88% of variability in the dataset.
+```{r}
+barplot(pca$rotation[,1], las=2, col="darkblue")
+```
+
+```{r}
+fviz_contrib(pca, choice = "var", axes = 1)
+```
+
+#Factor Analysis
+```{r}
+
+```
+#Cluster Analysis
+
+
