@@ -16,6 +16,8 @@ library(tidyverse)
 library(tidymodels)
 library(knitr)
 library(palmerpenguins)
+library(GGally)
+library(factoextra)
 view(penguins)
 ```
 
@@ -64,19 +66,29 @@ ggcorr(penguins2)
 ```
 
 #PCA
+To explore the principal components of our data set to explain the variability, we have to isolate the numeric variables in the dataset, which are `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, `body_mass_g`. The reason we can only use numeric variables is because the PCA relies linear algebra calculations which can only be used with numeric data.
 ```{r}
 pca_penguins2 <- penguins2[,3:6]
 
-pca = prcomp(pca_penguins2, scale = T)
+pca = prcomp(pca_penguins2, scale = TRUE)
+names(pca)
 summary(pca)
 ```
-
+Running the PCA calculations out using the prcomp tool, we see that the first two principal components are responsible for about 88% percent of the data. Let's create a screeplot to visualize this: 
 ```{r}
-fviz_eig(pca, addlabels = TRUE)
+fviz_eig(pca, addlabels = TRUE,
+         ylim = c(0,80))
 ```
-With two components, we explain 88% of variability in the dataset.
+**Kaiser Rule**
 ```{r}
-barplot(pca$rotation[,1], las=2, col="darkblue")
+fviz_eig(pca, 
+         addlabels = TRUE, 
+         choice="eigenvalue",
+         main="Figure 2") +
+         geom_hline(yintercept=1, 
+         linetype="dashed", 
+         color = "red")
+
 ```
 
 ```{r}
