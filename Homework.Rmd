@@ -14,17 +14,18 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r libraries}
 library(tidyverse)
 library(tidymodels)
+library(dplyr)
 library(knitr)
 library(palmerpenguins)
 library(GGally)
 library(factoextra)
-view(penguins)
+view(penguins_raw)
 ```
 
 ### Introduction
 
 ```{r original-dataset}
-penguins_raw
+penguins_raw <- penguins_raw
 ```
 
 Introduction of data: The dataset we aim to analyze contains data on 344 penguins. This dataset contains data on 3 species of penguins (Adelie, Chinstrap, and Gentoo) from 3 islands in the Palmer Archipelago (Torgerson, Biscoe, and Dream). There are 17 variables in the dataset, and they consist of the following:
@@ -65,31 +66,53 @@ Introduction of data: The dataset we aim to analyze contains data on 344 penguin
 
 Motivation: We decided to use this dataset for analysis because we were interested to see if there was any variation in some of the key metrics between penguins of different species or penguins of different islands. As a result, our main research question is: Is there a relationship between the certain categorical variables (such as species, island, and sex) and the size of certain aspects of the penguin (such as bill length/depth, body mass, and flipper length)?
 
+```{r data-cleaning}
+
+penguins_mod <- penguins_raw |>
+  select(-studyName, -`Sample Number`, -Region, -`Individual ID`, -Stage, 
+         -`Clutch Completion`, -`Date Egg`, -`Delta 15 N (o/oo)`, 
+         -`Delta 13 C (o/oo)`, -Comments)
+
+```
+
+Here, we have only kept the variables that would be useful in our analysis.
+
 ```{r remove-na}
 #Removing NAs in the dataset
-penguins2 <- penguins[rowSums(is.na(penguins)) < 2, ]
+penguins2 <- penguins_mod[rowSums(is.na(penguins)) < 2, ]
 ```
 
 ```{r outliers}
-ggplot(penguins2,aes(x=species, y=bill_length_mm)) + 
+penguins2 <- penguins2 |>
+  mutate(
+    Species = case_when(
+      Species == "Adelie Penguin (Pygoscelis adeliae)" ~ "Adelie",
+      Species == "Gentoo penguin (Pygoscelis papua)" ~ "Gentoo",
+      Species == "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap"
+    )
+  )
+
+ggplot(penguins2,aes(x=Species, y=`Culmen Length (mm)`)) + 
   geom_boxplot() 
-ggplot(penguins2,aes(x=species, y=bill_depth_mm)) + 
+ggplot(penguins2,aes(x=Species, y=`Culmen Depth (mm)`)) + 
   geom_boxplot() 
 penguins2 <- penguins2 %>% 
-  mutate(outlier = ifelse(bill_length_mm > 58, FALSE, TRUE))
+  mutate(outlier = ifelse(`Culmen Length (mm)` > 58, FALSE, TRUE))
 penguins2 <- penguins2 %>% 
   filter(outlier == TRUE)
 penguins2 <- penguins2 %>% 
-  mutate(outlier2 = ifelse(bill_depth_mm > 21.2, FALSE, TRUE))
+  mutate(outlier2 = ifelse(`Culmen Depth (mm)` > 21.2, FALSE, TRUE))
 penguins2 <- penguins2 %>% 
   filter(outlier2 == TRUE)
 penguins2 <- penguins2 %>% 
-  select(species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year)
+  select(Species, Island, `Culmen Length (mm)`, `Culmen Depth (mm)`,
+         `Flipper Length (mm)`, `Body Mass (g)`, Sex)
+  
 ```
 
-### PCA 
+### PCA
 
-To explore the principal components of our data set to explain the variability, we have to isolate the numeric variables in the dataset, which are `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, `body_mass_g`. The reason we can only use numeric variables is because the PCA relies linear algebra calculations which can only be used with numeric data.
+To explore the principal components of our data set to explain the variability, we have to isolate the numeric variables in the dataset, which are `Culmen Length (mm)`, `Culmen Depth (mm)`, `Flipper Length (mm)length_mm`, `Body Mass (g)`. The reason we can only use numeric variables is because the PCA relies linear algebra calculations which can only be used with numeric data.
 
 ```{r}
 pca_penguins2 <- penguins2[,3:6]
@@ -104,7 +127,7 @@ Let's visualize how correlated these variables are by doing bivariate analysis:
 ggcorr(penguins2[,3:6], label = TRUE, label_size = 3, hjust = 0.55, size =3)
 ```
 
-From the correlation matrix, we can see that `body_mass_g` is very correlated with `flipper_length_mm`. Also `bill_length_mm` has a somewhat strong correlation with `flipper_length_mm` and `body_mass_g`, while `bill_depth_mm` has a negative correlation with all of the variables and does not have a strong correlation with any of the variables.
+From the correlation matrix, we can see that `Body Mass (g)` is very correlated with `Flipper Length (mm)`. Also `Culment Length (mm)` has a somewhat strong correlation with `Flipper Length (mm)` and `Body Mass (g)`, while `Bill Depth (mm)` has a negative correlation with all of the variables and does not have a strong correlation with any of the variables.
 
 ```{r}
 summary(pca)
@@ -136,11 +159,11 @@ Only our first principal component has an eigenvalue greater than one, so our an
 fviz_contrib(pca, choice = "var", axes = 1)
 ```
 
-On average, each variable is expected to contributed 25% to the first principal component. However, only two of those variables `flipper_length_mm` and `body_mass_g` contribute over 25% to the first principal component. We should note that a reason that this could occur is that `flipper_length_mm` and `body_mass_g` are highly correlated. Let's visualize this correlated relationship with respect to `species`:
+On average, each variable is expected to contributed 25% to the first principal component. However, only two of those variables `Flipper Length (mm)` and `Body Mass (g)` contribute over 25% to the first principal component. We should note that a reason that this could occur is that `Flipper Length (mm)` and `Body Mass (g)` are highly correlated. Let's visualize this correlated relationship with respect to `species`:
 
 ```{r}
 penguins2 %>% 
-  ggplot(aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
+  ggplot(aes(x = `Flipper Length (mm)`, y = `Body Mass (g)`, color = Species)) +
   geom_point() +
   labs(y = "Body Mass (Grams)",
        x = "Flipper Length (mm)",
@@ -150,17 +173,17 @@ penguins2 %>%
   geom_smooth(method = "lm")
 ```
 
-From this chart, we can see the differentiation of the Gentoo species from the Adelie and Chinstrap species of Penguins, as the Gentoo species tends to have a greater body mass and flipper length. However, Adelie and Chinstrap are not differentiable based on their flipper length and body mass relationship. Therefore, the first principal component is an overall measure for the size of the penguins which differentiates the Gentoos. Another thing to note, is the strong postive correlation trend that `body_mass_g` and `flipper_length_mm` have as shown in the correlation plot and for each of the species. Let's circle back to principal component two, so we can find a way to differentiate the Adelie and Chinstrap species:
+From this chart, we can see the differentiation of the Gentoo species from the Adelie and Chinstrap species of Penguins, as the Gentoo species tends to have a greater body mass and flipper length. However, Adelie and Chinstrap are not differentiable based on their flipper length and body mass relationship. Therefore, the first principal component is an overall measure for the size of the penguins which differentiates the Gentoos. Another thing to note, is the strong postive correlation trend that `Body Mass (g)` and `Flipper Length (mm)` have as shown in the correlation plot and for each of the species. Let's circle back to principal component two, so we can find a way to differentiate the Adelie and Chinstrap species:
 
 ```{r}
 fviz_contrib(pca, choice = "var", axes = 2)
 ```
 
-In principal component two, the two other variables contribute more than expected. Let's visualize the relationship of `bill_length_mm` and `bill_depth_mm` with respect to species:
+In principal component two, the two other variables contribute more than expected. Let's visualize the relationship of `Culmen Length (mm)` and `Culmen Depth (mm)` with respect to species:
 
 ```{r}
 penguins2 %>% 
-  ggplot(aes(x = bill_depth_mm, y = bill_length_mm, color = species)) +
+  ggplot(aes(x = `Culmen Depth (mm)`, y = `Culmen Length (mm)`, color = Species)) +
   geom_point() +
   labs(x = "Bill Depth (mm)",
        y = "Bill Length (mm)",
@@ -170,7 +193,7 @@ penguins2 %>%
   geom_smooth(method = "lm")
 ```
 
-The Principal Component 2 is explained primarily by `bill_length_mm` and `bill_depth_mm`. From looking at the scatter plot above, we can determine that Chinstrap penguins have similar bill depths as Adelie penguins, but much larger lengths. Also, despite being smaller penguins in size, the Chinstrap and Adelie penguins have a larger bill depths than Gentoo Penguins. Gentoo Penguins; however, have a much larger bill length than Adelie penguins. Also, it is interesting to note that `bill_depth_mm` and `bill_length_mm` are not strongly correlated based on our correlation matrix, but their relationship with respect species allows us to further differentiate the penguins species.
+The Principal Component 2 is explained primarily by `Culmen Length (mm)` and `Culmen Depth (mm)`. From looking at the scatter plot above, we can determine that Chinstrap penguins have similar bill depths as Adelie penguins, but much larger lengths. Also, despite being smaller penguins in size, the Chinstrap and Adelie penguins have a larger bill depths than Gentoo Penguins. Gentoo Penguins; however, have a much larger bill length than Adelie penguins. Also, it is interesting to note that `Culmen Depth (mm)` and `Culmen Length (mm)` are not strongly correlated based on our correlation matrix, but their relationship with respect species allows us to further differentiate the penguins species.
 
 ### Cluster Analysis
 
