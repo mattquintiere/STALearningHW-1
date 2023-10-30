@@ -312,3 +312,26 @@ fviz_cluster(object.ker, geom = c("point"), ellipse=F,pointsize=1) +
 ```
 
 As seen by the above Kernel k-means analysis, we are using 2 of the principal components to visualize the data. Again, the first 2 principal components make up 88% of the variability. In the above plot, we see 2 very clear groups of points. In the group on the left, it is mainly dominated by clusters 1 and 3, but the one on the right is dominated mainly by points from cluster 2. We found this very interesting as we had expected to see 3 clear clusters, one for each species. However, we only see two, and in one of the groups, points from two clusters are mixed quite evenly. However, k-means are mainly used for highly non-linear data, so maybe another approach to identify clusters may be beneficial to use.
+
+We will now use hierarchical clustering to analyze the distance between observations and linkage to join groups.
+
+```{r hierarchical}
+
+d = dist(scale(pca_penguins2), method = "euclidean")
+hc <- hclust(d, method = "ward.D2") 
+
+```
+
+```{r}
+
+hc$labels <- names
+
+fviz_dend(x = hc,
+          k = 3,
+          color_labels_by_k = TRUE,
+          cex = 0.8,
+          type = "phylogenic",
+          repel = TRUE) +
+          labs(title="Socio-economic-health tree clustering of the world") + 
+          theme(axis.text.x=element_blank(),axis.text.y=element_blank())
+```
