@@ -262,3 +262,24 @@ fit = kmeans(scale(pca_penguins2), centers=k, nstart=1000)
 groups = fit$cluster
 barplot(table(groups), col="blue")
 ```
+
+Now to interpret the centers:
+
+```{r interpretation-of-centers}
+
+centers=fit$centers
+
+barplot(centers[1,], las=2, col="darkblue")
+barplot(centers[2,], las=2, col="darkblue")
+barplot(centers[3,], las=2, col="darkblue")
+
+
+```
+
+One cluster seems to have the characteristics of having a longer `Culmen depth (mm)`, as seen by the analysis of the centers of our data.
+
+Another cluster seems to have the characteristics of having a much lower `Culmen length (mm)`.
+
+The final cluster seems to have the characteristics of having a longer `Flipper Length (mm)` and `Body Mass (g)`.
+
+Based on this, we can see some of the major differences between each cluster. Specifically, we see these cluster-specific differences in characteristics such as `Culmen length/depth (mm)`, `Body Mass (g)`, and `Flipper Length (mm)`.
