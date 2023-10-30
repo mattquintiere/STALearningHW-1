@@ -197,4 +197,13 @@ The Principal Component 2 is explained primarily by `Culmen Length (mm)` and `Cu
 
 ### Cluster Analysis
 
+Load important clustering libraries:
+
+```{r load-cluster-libraries}
+
+library(factoextra)
+library(cluster)
+library(mclust)
+```
+
 ### Factor Analysis
