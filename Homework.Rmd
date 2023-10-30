@@ -254,7 +254,7 @@ library(cluster)
 library(mclust)
 ```
 
-Initial guess for the number of clusters: 3 (signifies the number of species, as well as the number of islands that our data comes from).
+Initial guess for the number of clusters: 3 (signifies the number of species, as well as the number of islands that our data comes from). However, we believe the clusters are the species that each penguin is, as there is a higher variation between species of penguin versus the island that the penguin resides on. The islands could all have an even distribution of species of penguins, so it makes more sense that species is the cluster we should be focusing on.
 
 ```{r guess-clusters}
 k = 3
@@ -283,3 +283,32 @@ Another cluster seems to have the characteristics of having a much lower `Culmen
 The final cluster seems to have the characteristics of having a longer `Flipper Length (mm)` and `Body Mass (g)`.
 
 Based on this, we can see some of the major differences between each cluster. Specifically, we see these cluster-specific differences in characteristics such as `Culmen length/depth (mm)`, `Body Mass (g)`, and `Flipper Length (mm)`.
+
+Now, let us confirm the most optimal amount of clusters, per the silhouette method.
+
+```{r optimal-clusters}
+fviz_nbclust(scale(pca_penguins2), kmeans, method = 'silhouette', k.max = 20, nstart = 1000) # With this you select the best number of clusters
+
+```
+
+```{r kernel-k-means}
+
+library(kernlab)
+
+fit.ker <- kkmeans(as.matrix(pca_penguins2), centers=3, kernel="rbfdot") # Radial Basis kernel (Gaussian)
+# By default, Gaussian kernel is used
+# By default, sigma parameter is estimated
+
+centers(fit.ker)
+size(fit.ker)
+withinss(fit.ker)
+
+object.ker = list(data = pca_penguins2, cluster = fit.ker@.Data)
+
+fviz_cluster(object.ker, geom = c("point"), ellipse=F,pointsize=1) +
+  theme_minimal() #+
+  #geom_text(label=names,hjust=0, vjust=0,size=2,check_overlap = T) +
+  #scale_fill_brewer(palette="Paired")
+```
+
+As seen by the above Kernel k-means analysis, we are using 2 of the principal components to visualize the data. Again, the first 2 principal components make up 88% of the variability. In the above plot, we see 2 very clear groups of points. In the group on the left, it is mainly dominated by clusters 1 and 3, but the one on the right is dominated mainly by points from cluster 2. We found this very interesting as we had expected to see 3 clear clusters, one for each species. However, we only see two, and in one of the groups, points from two clusters are mixed quite evenly. However, k-means are mainly used for highly non-linear data, so maybe another approach to identify clusters may be beneficial to use.
