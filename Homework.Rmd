@@ -2,7 +2,9 @@
 title: 'Homework #1'
 author: "Matt Quintiere and Rohit Gunda"
 date: "2023-10-16"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ### Setup
@@ -127,7 +129,7 @@ Let's visualize how correlated these variables are by doing bivariate analysis:
 ggcorr(penguins2[,3:6], label = TRUE, label_size = 3, hjust = 0.55, size =3)
 ```
 
-From the correlation matrix, we can see that `Body Mass (g)` is very correlated with `Flipper Length (mm)`. Also `Culment Length (mm)` has a somewhat strong correlation with `Flipper Length (mm)` and `Body Mass (g)`, while `Bill Depth (mm)` has a negative correlation with all of the variables and does not have a strong correlation with any of the variables.
+From the correlation matrix, we can see that `Body Mass (g)` is very correlated with `Flipper Length (mm)`. Also `Culmen Length (mm)` has a somewhat strong correlation with `Flipper Length (mm)` and `Body Mass (g)`, while `Bill Depth (mm)` has a negative correlation with all of the variables and does not have a strong correlation with any of the variables.
 
 ```{r}
 summary(pca)
@@ -197,13 +199,15 @@ The Principal Component 2 is explained primarily by `Culmen Length (mm)` and `Cu
 
 ### Factor Analysis
 
-After determining the meaning of our first two principal components and using the PCA to attempt to explain the total variance, we will move on to completing a factor analysis in order to better explain the variance and covariance of the observed variables in our data set by a set of fewer latent variables. Let's test if our factor analysis will run: 
+After determining the meaning of our first two principal components and using the PCA to attempt to explain the total variance, we will move on to completing a factor analysis in order to better explain the variance and covariance of the observed variables in our data set by a set of fewer latent variables. Let's test if our factor analysis will run:
+
 ```{r}
 det(cor(pca_penguins2))
 ```
+
 Our determinant is postive, so that means our factor analysis will most likely run.
 
-We will be using the principal axis factor analysis and maximum likelihood factor analysis methods and only be using a total of 2 factors based on the reasoning from the PCA above. We will also be using the varimax rotational method which will minimize the number of variables that have high loadings on each factor and simplify the interpretation of each factor. We will use the method that has the highest culmative variance on the second factor. 
+We will be using the principal axis factor analysis and maximum likelihood factor analysis methods and only be using a total of 2 factors based on the reasoning from the PCA above. We will also be using the varimax rotational method which will minimize the number of variables that have high loadings on each factor and simplify the interpretation of each factor. We will use the method that has the highest culmative variance on the second factor.
 
 ```{r}
 pa <- fa(r = pca_penguins2,
@@ -217,17 +221,22 @@ ml <- fa(r = pca_penguins2,
          fa = "ml",
          resdiuals = TRUE)
 ```
+
 The PA and ML methods both produce a cumulative variance of 0.72, so either method will work in this case. We will use the ML method going ahead. So let's view and interpret the results:
+
 ```{r}
 ml
 ```
+
 ```{r}
 fa.diagram(ml)
 ```
+
 ```{r}
 barplot(ml$loadings[,1], las=2, names =F,col="beige", ylim = c(-1, 1))
 barplot(ml$loadings[,2], las=2, names = F, col="beige", ylim = c(-1, 1))
 ```
+
 From these charts and tables, we can determine that the first factor (MR1) is related to `Flipper Length (mm)`, `Body Mass (g)`, and `Culmen Length (mm)`. However, `Culmen Length (mm)` is a feature that is poorly explained by factor analysis because less 50% of its variance is explain by the two given factor loadings. `Flipper Length (mm)` is the best explained variable by factor analysis as over 99% of its variance is explained by the two factor loading. Therefore, the first factor loading represents the size of the penguins as it did in the PCA and it causes the flipper lengths and masses of the penguins. The second loading factor is most related to `Culmen Depth (mm)` as `Culmen Depth (mm)` has the highest MR2 value in absolute value. The second factor loading once again represents the shape of the beak, but is not as well explained as the second principal component analysis as `Culmen Length (mm)` is not well explained by the second factor loading. The second factor loading is also somewhat related to `Flipper Length (mm)` and `Body Mass (g)`, which also have the highest complexity variables. This means that these two variables do most of the explanation of the variance and covariance in the data set. According to our factor analysis, `Culmen Length (mm)` does not explain a large amount of the variance in the data set and should be considered to be taken out of models trying to predict the species or island of a given penguin.
 
 Similar to the PCA, we were able reduce our data into two-dimensions with the size of the Penguin and the shape of the beak. It is interesting to note that the first loading factor did a much better job at explaining the variances and covariances of the variables than the second loading factor. This may have occured because `Culmen Depth (mm)` is not that strongly correlated with the other numeric variables and the only prinicpal component that has an eigenvalue greater than 1 is the first one, which does not include `Culmen Depth (mm)` and `Culmen Depth (mm)` is the main variable in the second loading factor.
@@ -243,4 +252,13 @@ Load important clustering libraries:
 library(factoextra)
 library(cluster)
 library(mclust)
+```
+
+Initial guess for the number of clusters: 3 (signifies the number of species, as well as the number of islands that our data comes from).
+
+```{r guess-clusters}
+k = 3
+fit = kmeans(scale(pca_penguins2), centers=k, nstart=1000)
+groups = fit$cluster
+barplot(table(groups), col="blue")
 ```
