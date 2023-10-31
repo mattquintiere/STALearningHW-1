@@ -313,25 +313,35 @@ fviz_cluster(object.ker, geom = c("point"), ellipse=F,pointsize=1) +
 
 As seen by the above Kernel k-means analysis, we are using 2 of the principal components to visualize the data. Again, the first 2 principal components make up 88% of the variability. In the above plot, we see 2 very clear groups of points. In the group on the left, it is mainly dominated by clusters 1 and 3, but the one on the right is dominated mainly by points from cluster 2. We found this very interesting as we had expected to see 3 clear clusters, one for each species. However, we only see two, and in one of the groups, points from two clusters are mixed quite evenly. However, k-means are mainly used for highly non-linear data, so maybe another approach to identify clusters may be beneficial to use.
 
-We will now use hierarchical clustering to analyze the distance between observations and linkage to join groups.
-
-```{r hierarchical}
-
-d = dist(scale(pca_penguins2), method = "euclidean")
-hc <- hclust(d, method = "ward.D2") 
-
-```
+Per our above analysis on the optimal number of clusters, as well as the plot showing the relationship between `Flipper Length (mm)` and `Body Mass (g)`, we will now use 2 clusters as the "guess" when analyzing our centers.
 
 ```{r}
 
-hc$labels <- names
-
-fviz_dend(x = hc,
-          k = 3,
-          color_labels_by_k = TRUE,
-          cex = 0.8,
-          type = "phylogenic",
-          repel = TRUE) +
-          labs(title="Socio-economic-health tree clustering of the world") + 
-          theme(axis.text.x=element_blank(),axis.text.y=element_blank())
+y = 3
+fit = kmeans(scale(pca_penguins2), centers=y, nstart=1000)
+groups = fit$cluster
+barplot(table(groups), col="blue")
 ```
+
+Interpret the centers:
+
+```{r}
+
+centers=fit$centers
+
+barplot(centers[1,], las=2, col="darkblue")
+barplot(centers[2,], las=2, col="darkblue")
+
+```
+
+Now, the differences between both clusters are much more distinct. `Culmen Depth (mm)` is notably higher in the first cluster, whereas the other 3 key continuous variables (`Culmen Length (mm)`, `Flipper Length (mm)`, and `Body Mass (g)`), are noticeably higher in the second one.
+
+To conclude, we originally thought that there would be three clusters, as species was a clear defining categorical variable that can be used to distinguish between penguins. However, after looking at the plots of the principal components, as well as the optimal cluster analysis, we can conclude that there are 2 clusters in our data.
+
+### Conclusion
+
+differences between the species
+
+answer research question
+
+final thoughts
