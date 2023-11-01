@@ -5,15 +5,12 @@ date: "2023-10-16"
 output:
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ### Setup
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r libraries}
+```{r libraries, message = FALSE}
 library(tidyverse)
 library(tidymodels)
 library(dplyr)
@@ -22,16 +19,21 @@ library(palmerpenguins)
 library(GGally)
 library(factoextra)
 library(psych)
-view(penguins_raw)
+library(patchwork)
+library(factoextra)
+library(cluster)
+library(mclust)
+library(kernlab)
 ```
 
 ### Introduction
 
-```{r original-dataset}
+```{r original-dataset, message = FALSE}
 penguins_raw <- penguins_raw
+names(penguins_raw)
 ```
 
-Introduction of data: The dataset we aim to analyze contains data on 344 penguins. This dataset contains data on 3 species of penguins (Adelie, Chinstrap, and Gentoo) from 3 islands in the Palmer Archipelago (Torgerson, Biscoe, and Dream). There are 17 variables in the dataset, and they consist of the following:
+Data Introduction: The dataset we aim to analyze contains data on 344 penguins. This dataset contains data on 3 species of penguins (Adelie, Chinstrap, and Gentoo) from 3 islands in the Palmer Archipelago (Torgerson, Biscoe, and Dream). There are 17 variables in the dataset, and they consist of the following:
 
 -   **studyName:** Sampling expedition from which data were collected, generated, etc.
 
@@ -51,13 +53,13 @@ Introduction of data: The dataset we aim to analyze contains data on 344 penguin
 
 -   **Date Egg:** a date denoting the date study nest observed with 1 egg (sampled)
 
--   **Culmen (bill) Length:** a number denoting the length of the dorsal ridge of a bird's bill (millimeters)
+-   **Culmen Length (mm):** a number denoting the length of the dorsal ridge of a bird's bill (millimeters)
 
--   **Culmen (bill) Depth:** a number denoting the depth of the dorsal ridge of a bird's bill (millimeters)
+-   **Culmen Depth (mm):** a number denoting the depth of the dorsal ridge of a bird's bill (millimeters)
 
--   **Flipper Length:** an integer denoting the length penguin flipper (millimeters)
+-   **Flipper Length (mm):** an integer denoting the length penguin flipper (millimeters)
 
--   **Body Mass:** an integer denoting the penguin body mass (grams)
+-   **Body Mass (g):** an integer denoting the penguin body mass (grams)
 
 -   **Sex:** a character string denoting the sex of an animal
 
@@ -67,25 +69,17 @@ Introduction of data: The dataset we aim to analyze contains data on 344 penguin
 
 -   **Comments:** a character string with text providing additional relevant information for data
 
-Motivation: We decided to use this dataset for analysis because we were interested to see if there was any variation in some of the key metrics between penguins of different species or penguins of different islands. As a result, our main research question is: Is there a relationship between the certain categorical variables (such as species, island, and sex) and the size of certain aspects of the penguin (such as bill length/depth, body mass, and flipper length)?
+Motivation: We decided to use this data set for our analysis because we were interested to see if there was any variation in some of the key metrics between penguins of different species or penguins of different islands. To gain a better understanding of these key metrics, we will be using unsupervised learning techniques of Principal Component Analysis (PCA), Factor Analysis, and Cluster Analysis to get a better understanding of how the metrics are related and can be useful in predicting the species of a penguin on these islands. The metrics we will be using are the numeric variables of `Culmen Length (mm)`, `Culmen Depth (mm)`, `Flipper Length (mm)`, and `Body Mass (g)`. We have also kept `Species`, `Island`, and `Sex`. While we will be focusing on analyzing the numeric variables to get a better understanding of how they relate to the penguins' species, we may be interested in the future in conducting a similar analysis to get better understanding of how these numeric variables relate to a penguins' sex or island. Therefore, we will keep the `sex` and `island` variables. We have removed `Region`, `studyName`, `Sample Number`, `Stage`, `Individual ID`, `Clutch Completion`, `Data Egg`, `Delta 15 N`, `Delta 13 C`, and `Comments` as we believe that they are not relevant for our analysis. We will now go ahead and clean the dataset to get it to the version that we want use for our analysis.
 
-```{r data-cleaning}
-
+```{r removing-variables}
 penguins_mod <- penguins_raw |>
   select(-studyName, -`Sample Number`, -Region, -`Individual ID`, -Stage, 
          -`Clutch Completion`, -`Date Egg`, -`Delta 15 N (o/oo)`, 
          -`Delta 13 C (o/oo)`, -Comments)
-
 ```
 
-Here, we have only kept the variables that would be useful in our analysis.
-
-```{r remove-na}
-#Removing NAs in the dataset
+```{r data-cleaning, results = 'hide'}
 penguins2 <- penguins_mod[rowSums(is.na(penguins)) < 2, ]
-```
-
-```{r outliers}
 penguins2 <- penguins2 |>
   mutate(
     Species = case_when(
@@ -94,57 +88,64 @@ penguins2 <- penguins2 |>
       Species == "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap"
     )
   )
+duplicated(penguins2)
+```
+ 
+Here we did some initial data cleaning by removing rows that had 2 or more NA values, which removed all the NA values in our numeric variable columns. We also shortened the names of the species to make it easier when writing our report. We then checked for duplicates in our data and found none to remove. Now we will check for extreme outliers to remove in our dataset:
+```{r outliers1, echo = FALSE}
+p1 <- ggplot(penguins2,aes(x=Species, y=`Culmen Length (mm)`)) + 
+  geom_boxplot() 
+p2 <- ggplot(penguins2,aes(x=Species, y=`Culmen Depth (mm)`)) + 
+  geom_boxplot() 
+p1 + p2
+```
 
-ggplot(penguins2,aes(x=Species, y=`Culmen Length (mm)`)) + 
+```{r outliers2, echo = FALSE}
+p3 <- ggplot(penguins2,aes(x=Species, y=`Flipper Length (mm)`)) + 
   geom_boxplot() 
-ggplot(penguins2,aes(x=Species, y=`Culmen Depth (mm)`)) + 
+p4 <- ggplot(penguins2,aes(x=Species, y=`Body Mass (g)`)) + 
   geom_boxplot() 
-penguins2 <- penguins2 %>% 
-  mutate(outlier = ifelse(`Culmen Length (mm)` > 58, FALSE, TRUE))
-penguins2 <- penguins2 %>% 
-  filter(outlier == TRUE)
-penguins2 <- penguins2 %>% 
-  mutate(outlier2 = ifelse(`Culmen Depth (mm)` > 21.2, FALSE, TRUE))
-penguins2 <- penguins2 %>% 
-  filter(outlier2 == TRUE)
-penguins2 <- penguins2 %>% 
-  select(Species, Island, `Culmen Length (mm)`, `Culmen Depth (mm)`,
-         `Flipper Length (mm)`, `Body Mass (g)`, Sex)
-  
+p3+p4
+```
+
+Through viewing these boxplots of our numeric variables and how they relate to the species of the penguins, we can tell that there are no extreme outliers, which means that we can use this data set for our unsupervised learning analysis:
+
+```{r final dataset, echo = FALSE}
+knitr::kable(head(penguins2))
 ```
 
 ### PCA
 
-To explore the principal components of our data set to explain the variability, we have to isolate the numeric variables in the dataset, which are `Culmen Length (mm)`, `Culmen Depth (mm)`, `Flipper Length (mm)length_mm`, `Body Mass (g)`. The reason we can only use numeric variables is because the PCA relies linear algebra calculations which can only be used with numeric data.
+Our first unsupervised learning technique to learn more about our dataset will be the PCA. To explore the principal components of our data set to explain the variability, we have to isolate the numeric variables in the data set, which are `Culmen Length (mm)`, `Culmen Depth (mm)`, `Flipper Length (mm)length_mm`, `Body Mass (g)`. The reason we can only use numeric variables is because the PCA relies linear algebra calculations to find a linear combination that explains majority of the total variance, which can only be used with numeric data.
 
-```{r}
+```{r pca setup, echo = FALSE}
 pca_penguins2 <- penguins2[,3:6]
+knitr::kable(head(pca_penguins2))
+```
 
+Let's visualize how correlated these variables are by creating a correlation plot:
+
+```{r correlation plot, echo = FALSE}
+ggcorr(penguins2[,3:6], label = TRUE, label_size = 4, hjust = 0.50, size =2)
+```
+
+From the correlation matrix, we can see that `Body Mass (g)` is very positively correlated with `Flipper Length (mm)`. Also `Culmen Length (mm)` has a somewhat strong correlation with `Flipper Length (mm)`, while `Culmen Depth (mm)` has a negative correlation with all of the variables and does not have a strong correlation with any of the variables.
+
+```{r}
 pca = prcomp(pca_penguins2, scale = TRUE)
-```
-
-Let's visualize how correlated these variables are by doing bivariate analysis:
-
-```{r}
-ggcorr(penguins2[,3:6], label = TRUE, label_size = 3, hjust = 0.55, size =3)
-```
-
-From the correlation matrix, we can see that `Body Mass (g)` is very correlated with `Flipper Length (mm)`. Also `Culmen Length (mm)` has a somewhat strong correlation with `Flipper Length (mm)` and `Body Mass (g)`, while `Bill Depth (mm)` has a negative correlation with all of the variables and does not have a strong correlation with any of the variables.
-
-```{r}
 summary(pca)
 ```
 
 Running the PCA calculations out using the prcomp tool, we see that the first two principal components are responsible for about 88% percent of the data. Let's create a screeplot to visualize this:
 
-```{r}
+```{r, echo = FALSE}
 fviz_eig(pca, addlabels = TRUE,
          ylim = c(0,80))
 ```
 
 Now let's apply the Kaiser rule to select the number of components, we will use in the PCA:
 
-```{r}
+```{r, echo = FALSE}
 fviz_eig(pca, 
          addlabels = TRUE, 
          ylim = c(0,4),
@@ -155,15 +156,15 @@ fviz_eig(pca,
          color = "red")
 ```
 
-Only our first principal component has an eigenvalue greater than one, so our analysis will focus on the first principal component to start, which explains about 69% of the variability and is the maximum variance direction in the data. Now let's look at what variables contribute the most to our first principal component:
+Only our first principal component has an eigenvalue greater than one, so our analysis will focus on the first principal component to start, which explains about 69% of the variability and is the maximum variance direction in the data. However, we may still use the second principal component if necessary. Now let's look at what variables contribute the most to our first principal component:
 
-```{r}
+```{r, echo = FALSE}
 fviz_contrib(pca, choice = "var", axes = 1)
 ```
 
-On average, each variable is expected to contributed 25% to the first principal component. However, only two of those variables `Flipper Length (mm)` and `Body Mass (g)` contribute over 25% to the first principal component. We should note that a reason that this could occur is that `Flipper Length (mm)` and `Body Mass (g)` are highly correlated. Let's visualize this correlated relationship with respect to `species`:
+On average, each variable is expected to contributed 25% to the first principal component. However, only two of those variables `Flipper Length (mm)` and `Body Mass (g)` contribute over 25% to the first principal component. We should note that a reason that this could occur is that `Flipper Length (mm)` and `Body Mass (g)` are highly correlated. Let's visualize this correlated relationship with respect to `Species`:
 
-```{r}
+```{r, message = FALSE, echo = FALSE}
 penguins2 %>% 
   ggplot(aes(x = `Flipper Length (mm)`, y = `Body Mass (g)`, color = Species)) +
   geom_point() +
@@ -175,27 +176,27 @@ penguins2 %>%
   geom_smooth(method = "lm")
 ```
 
-From this chart, we can see the differentiation of the Gentoo species from the Adelie and Chinstrap species of Penguins, as the Gentoo species tends to have a greater body mass and flipper length. However, Adelie and Chinstrap are not differentiable based on their flipper length and body mass relationship. Therefore, the first principal component is an overall measure for the size of the penguins which differentiates the Gentoos. Another thing to note, is the strong postive correlation trend that `Body Mass (g)` and `Flipper Length (mm)` have as shown in the correlation plot and for each of the species. Let's circle back to principal component two, so we can find a way to differentiate the Adelie and Chinstrap species:
+From this chart, we can see the differentiation of the Gentoo species from the Adelie and Chinstrap species of penguins, as the Gentoo species tends to have a greater body mass and flipper length. However, Adelie and Chinstrap are not differentiable based on their flipper length and body mass relationship. Therefore, the first principal component is an overall measure for the size of the penguins which differentiates the Gentoos. Another thing to note is that `Body Mass (g)` and `Flipper Length (mm)` display a strong positive correlation for each of the species as predicted in the correlation plot. Let's circle back to the second principal component, so that we can find a way to differentiate the Adelie and Chinstrap species as they are similar sizes:
 
-```{r}
+```{r, echo = FALSE}
 fviz_contrib(pca, choice = "var", axes = 2)
 ```
 
-In principal component two, the two other variables contribute more than expected. Let's visualize the relationship of `Culmen Length (mm)` and `Culmen Depth (mm)` with respect to species:
+In the second principal component, the two other variables contribute more than expected. Let's visualize the relationship of `Culmen Length (mm)` and `Culmen Depth (mm)` with respect to species:
 
-```{r}
+```{r, message = FALSE, echo = FALSE}
 penguins2 %>% 
   ggplot(aes(x = `Culmen Depth (mm)`, y = `Culmen Length (mm)`, color = Species)) +
   geom_point() +
-  labs(x = "Bill Depth (mm)",
-       y = "Bill Length (mm)",
+  labs(x = "Culmen Depth (mm)",
+       y = "Culmen Length (mm)",
        title = "Relationship between Bill Length and Depth",
        subtitle = "Seperated by Species",
        color = "Species") +
   geom_smooth(method = "lm")
 ```
 
-The Principal Component 2 is explained primarily by `Culmen Length (mm)` and `Culmen Depth (mm)`. From looking at the scatter plot above, we can determine that Chinstrap penguins have similar bill depths as Adelie penguins, but much larger lengths. Also, despite being smaller penguins in size, the Chinstrap and Adelie penguins have a larger bill depths than Gentoo Penguins. Gentoo Penguins; however, have a much larger bill length than Adelie penguins. Also, it is interesting to note that `Culmen Depth (mm)` and `Culmen Length (mm)` are not strongly correlated based on our correlation matrix, but their relationship with respect species allows us to further differentiate the penguins species.
+The second principal component is explained primarily by `Culmen Length (mm)` and `Culmen Depth (mm)`. From looking at the scatter plot above, we can determine that Chinstrap penguins have similar culmen depths as Adelie penguins, but much larger culmen lengths. Also, despite being smaller penguins in size, the Chinstrap and Adelie penguins have a larger culmen depths than Gentoo penguins. Gentoo penguins; however, have a much larger culmen length than Adelie penguins. Also, it is interesting to note that `Culmen Depth (mm)` and `Culmen Length (mm)` were not strongly correlated based on our correlation matrix and were also negatively correlated. However, when the relationship of these variables are seperated by species, there is at least a somewhat strong positive correlation.  
 
 ### Factor Analysis
 
@@ -205,9 +206,9 @@ After determining the meaning of our first two principal components and using th
 det(cor(pca_penguins2))
 ```
 
-Our determinant is postive, so that means our factor analysis will most likely run.
+Our determinant is positive, so that means our factor analysis will most likely run.
 
-We will be using the principal axis factor analysis and maximum likelihood factor analysis methods and only be using a total of 2 factors based on the reasoning from the PCA above. We will also be using the varimax rotational method which will minimize the number of variables that have high loadings on each factor and simplify the interpretation of each factor. We will use the method that has the highest culmative variance on the second factor.
+We will be using the principal axis factor analysis and maximum likelihood factor analysis methods. We will only be using a total of two factors based on the reasoning from the PCA above. We will also be using the varimax rotational method which will minimize the number of variables that have high loadings on each factor and simplify the interpretation of each factor. We will use the method that has the highest cumulative variance on the second factor.
 
 ```{r}
 pa <- fa(r = pca_penguins2,
@@ -228,31 +229,23 @@ The PA and ML methods both produce a cumulative variance of 0.72, so either meth
 ml
 ```
 
-```{r}
-fa.diagram(ml)
+```{r, echo = FALSE}
+fa.diagram(ml, main="Factor Analysis Charted")
+```
+```{r, echo = FALSE}
+barplot(ml$loadings[,1], las=2, main = "Factor Loading 1",col="turquoise", ylim = c(-1, 1), cex.names = 0.35, border = NA)
+barplot(ml$loadings[,2], las=2, main = "Factor Loading 2", col="turquoise", ylim = c(-1, 1), cex.names = 0.35, border = NA)
 ```
 
-```{r}
-barplot(ml$loadings[,1], las=2, names =F,col="beige", ylim = c(-1, 1))
-barplot(ml$loadings[,2], las=2, names = F, col="beige", ylim = c(-1, 1))
-```
+From these tables and charts, we can determine that the first factor (MR1) is related to `Flipper Length (mm)`, `Body Mass (g)`, and `Culmen Length (mm)`. However, `Culmen Length (mm)` is a feature that is poorly explained by factor analysis because less 50% of its variance is explain by the two given factor loadings. `Flipper Length (mm)` is the best explained variable by factor analysis as over 99% of its variance is explained by the two factor loadings. Therefore, the first factor loading represents the size of the penguins as it did in the PCA and it causes the flipper lengths and masses of the penguins. The second loading factor is most related to `Culmen Depth (mm)` as `Culmen Depth (mm)` has the highest MR2 value in absolute value. The second factor loading once again represents the shape of the beak, but is not as well explained as the second principal component from the PCA as `Culmen Length (mm)` is not well explained by the second factor loading. The second factor loading is also somewhat related to `Flipper Length (mm)` and `Body Mass (g)`, which also have the highest complexity variables. This means that these two variables do most of the explanation of the variance and covariance in the data set. According to our factor analysis, `Culmen Length (mm)` does not explain a large amount of the variance in the data set and should be considered to be taken out of models trying to predict the species of a given penguin based on the Factor Analysis.
 
-From these charts and tables, we can determine that the first factor (MR1) is related to `Flipper Length (mm)`, `Body Mass (g)`, and `Culmen Length (mm)`. However, `Culmen Length (mm)` is a feature that is poorly explained by factor analysis because less 50% of its variance is explain by the two given factor loadings. `Flipper Length (mm)` is the best explained variable by factor analysis as over 99% of its variance is explained by the two factor loading. Therefore, the first factor loading represents the size of the penguins as it did in the PCA and it causes the flipper lengths and masses of the penguins. The second loading factor is most related to `Culmen Depth (mm)` as `Culmen Depth (mm)` has the highest MR2 value in absolute value. The second factor loading once again represents the shape of the beak, but is not as well explained as the second principal component analysis as `Culmen Length (mm)` is not well explained by the second factor loading. The second factor loading is also somewhat related to `Flipper Length (mm)` and `Body Mass (g)`, which also have the highest complexity variables. This means that these two variables do most of the explanation of the variance and covariance in the data set. According to our factor analysis, `Culmen Length (mm)` does not explain a large amount of the variance in the data set and should be considered to be taken out of models trying to predict the species or island of a given penguin.
+Similar to the PCA, we were able reduce our data into two-dimensions with the size of the penguin and the shape of the beak. It is interesting to note that the first loading factor did a much better job at explaining the variances and covariances of the variables than the second loading factor. This may have occurred because `Culmen Depth (mm)` is not that strongly correlated with the other numeric variables and that only the first principal component has an eigenvalue greater than 1, which does not include `Culmen Depth (mm)` and `Culmen Depth (mm)` is the main variable in the second loading factor.
 
-Similar to the PCA, we were able reduce our data into two-dimensions with the size of the Penguin and the shape of the beak. It is interesting to note that the first loading factor did a much better job at explaining the variances and covariances of the variables than the second loading factor. This may have occured because `Culmen Depth (mm)` is not that strongly correlated with the other numeric variables and the only prinicpal component that has an eigenvalue greater than 1 is the first one, which does not include `Culmen Depth (mm)` and `Culmen Depth (mm)` is the main variable in the second loading factor.
+Also, our PCA and factor analysis may have produced slightly different results because all of our variables are not in the same units. The reason for this is because it is impossible to convert grams to millimeters, so the `Body Mass (g)` variable has different units than the rest.
 
 Let's move onto our final unsupervised learning method to further explore our data before we make final conclusions.
 
 ### Cluster Analysis
-
-Load important clustering libraries:
-
-```{r load-cluster-libraries}
-
-library(factoextra)
-library(cluster)
-library(mclust)
-```
 
 Initial guess for the number of clusters: 3 (signifies the number of species, as well as the number of islands that our data comes from). However, we believe the clusters are the species that each penguin is, as there is a higher variation between species of penguin versus the island that the penguin resides on. The islands could all have an even distribution of species of penguins, so it makes more sense that species is the cluster we should be focusing on.
 
@@ -260,7 +253,7 @@ Initial guess for the number of clusters: 3 (signifies the number of species, as
 k = 3
 fit = kmeans(scale(pca_penguins2), centers=k, nstart=1000)
 groups = fit$cluster
-barplot(table(groups), col="blue")
+barplot(table(groups), col="turquoise")
 ```
 
 Now to interpret the centers:
@@ -269,9 +262,9 @@ Now to interpret the centers:
 
 centers=fit$centers
 
-barplot(centers[1,], las=2, col="darkblue")
-barplot(centers[2,], las=2, col="darkblue")
-barplot(centers[3,], las=2, col="darkblue")
+barplot(centers[1,], las=2, col="turquoise")
+barplot(centers[2,], las=2, col="turquoise")
+barplot(centers[3,], las=2, col="turquoise")
 
 
 ```
@@ -292,9 +285,6 @@ fviz_nbclust(scale(pca_penguins2), kmeans, method = 'silhouette', k.max = 20, ns
 ```
 
 ```{r kernel-k-means}
-
-library(kernlab)
-
 fit.ker <- kkmeans(as.matrix(pca_penguins2), centers=3, kernel="rbfdot") # Radial Basis kernel (Gaussian)
 # By default, Gaussian kernel is used
 # By default, sigma parameter is estimated
@@ -320,7 +310,7 @@ Per our above analysis on the optimal number of clusters, as well as the plot sh
 y = 3
 fit = kmeans(scale(pca_penguins2), centers=y, nstart=1000)
 groups = fit$cluster
-barplot(table(groups), col="blue")
+barplot(table(groups), col="turquoise")
 ```
 
 Interpret the centers:
@@ -329,8 +319,8 @@ Interpret the centers:
 
 centers=fit$centers
 
-barplot(centers[1,], las=2, col="darkblue")
-barplot(centers[2,], las=2, col="darkblue")
+barplot(centers[1,], las=2, col="turquoise")
+barplot(centers[2,], las=2, col="turquoise")
 
 ```
 
@@ -340,12 +330,13 @@ To conclude, we originally thought that there would be three clusters, as specie
 
 ### Conclusion
 
-To conclude,
+It is essential to outline some of the main distinguishing factors between the 3 species of penguins that we are analyzing. Upon looking at the plot in the PCA which displays the relationship between `Flipper Length (mm)` and `Body Mass (g)` with respect to species, we can see that the Gentoo penguins are in its own group in the top right, while the Adelie and Chinstrap penguins are clumped together, as they are similiar in size. In fact, Gentoo penguins are the third largest species of penguins, while the Chinstrap and Adelie penguins are 5th and 6th largest, respectively. 
 
-It is essential to outline some of the main distinguishing factors between the 3 species of penguins that we are analyzing. Upon looking at the plot which displays the relationship between `Flipper Length (mm)` and `Body Mass (g)`, we can see that the Gentoo penguins are in its own group in the top right, while the Adelie and Chinstrap penguins are more in their own group, with their characteristics being more similar. In fact, Gentoo penguins are the third largest species of Penguin, while the Adelie and Chinstrap penguins are 6th and 5th largest, respectively. Adelie penguins also are known to have smaller bills, contributing to a smaller length and depth. Understanding the variations between the species is essential to draw some of the conclusions from our analysis.
+Adelie and Chinstrap penguins are differentiated by the shape of their culmens. Chinstraps have similiar culmen depths as Adelies, but longer culmen lengths. However, Chinstraps have similiar culmen lengths as Gentoos, but longer culmen depths. According to the Factor Analysis, the `Culmen Length (mm)` variable was not useful, but that was proven false in PCA. Therefore, we can conclude that all four of the numeric variables that we explored are useful in predicting the species of a penguin. Our unsupervised learning techniques proved that we can reduced these four variables into the two-dimensions of penguin size and culmen shape to complete the analysis. 
 
-To address our research question, we can conclude that categorical variables such as species does contribute to certain quantitative variables such as size of certain characteristics of the penguins.
+Further directions would include creating a model to predict a penguins species using these numeric variables, as well as exploring the `Island` and `Sex` variables of our data set in relation to the numeric variables.
 
-answer research question
-
-final thoughts
+### Sources
+1) [penguins_raw data set](https://allisonhorst.github.io/palmerpenguins/)
+2) [Kaiser Rule for PCA](https://statisticsglobe.com/scree-plot-pca)
+3) [PA and ML Methods for Factor Analysis](https://www.youtube.com/watch?v=kbJMz0KzMnI)
