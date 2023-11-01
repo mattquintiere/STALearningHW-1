@@ -340,7 +340,9 @@ To conclude, we originally thought that there would be three clusters, as specie
 
 ### Conclusion
 
-differences between the species
+To conclude,
+
+It is essential to outline some of the main distinguishing factors between the 3 species of penguins that we are analyzing. Upon looking at the plot which displays the relationship between `Flipper Length (mm)` and `Body Mass (g)`, we can see that the Gentoo penguins are in its own group in the top right, while the Adelie and Chinstrap penguins are more in their own group, with their characteristics being more similar. In fact, Gentoo penguins are the third largest species of Penguin, while the Adelie and Chinstrap penguins are 6th and 5th largest, respectively. Adelie penguins also are known to have smaller bills, contributing to a smaller length and depth. Understanding the variations between the species is essential to draw some of the conclusions from our analysis.
 
 answer research question
 
