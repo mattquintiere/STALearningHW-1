@@ -226,7 +226,7 @@ ml <- fa(r = pca_penguins2,
          resdiuals = TRUE)
 ```
 
-The PA and ML methods both produce a cumulative variance of 0.72, so either method will work in this case. We will use the ML method going ahead. So let's view and interpret the results:
+The PA and ML methods both produce a cumulative variance of 0.73, so either method will work in this case. We will use the ML method going ahead. So let's view and interpret the results:
 
 ```{r ml}
 ml
