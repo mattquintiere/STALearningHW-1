@@ -39,7 +39,7 @@ Data Introduction: The dataset we aim to analyze contains data on 344 penguins. 
 
 -   **Sample Number:** an integer denoting the continuous numbering sequence for each sample
 
--   **Species:** a character string denoting the penguin species
+-   **Species:** a character string denoting the penguin species (Adelie, Chinstrap, Gentoo)
 
 -   **Region:** a character string denoting the region of Palmer LTER sampling grid
 
@@ -68,6 +68,8 @@ Data Introduction: The dataset we aim to analyze contains data on 344 penguins. 
 -   **Delta 13 C:** a number denoting the measure of the ratio of stable isotopes 13C:12C
 
 -   **Comments:** a character string with text providing additional relevant information for data
+
+![](https://www.hummingbirdsplus.org/nature-blog-network/wp-content/uploads/2023/09/7-types-of-penguins-found-in-antarctica-gentoo-king-adelie-chinstrap-southern-rockhopper-emperor-and-macaroni-penguins.jpg)
 
 Motivation: We decided to use this data set for our analysis because we were interested to see if there was any variation in some of the key metrics between penguins of different species or penguins of different islands. To gain a better understanding of these key metrics, we will be using unsupervised learning techniques of Principal Component Analysis (PCA), Factor Analysis, and Cluster Analysis to get a better understanding of how the metrics are related and can be useful in predicting the species of a penguin on these islands. The metrics we will be using are the numeric variables of `Culmen Length (mm)`, `Culmen Depth (mm)`, `Flipper Length (mm)`, and `Body Mass (g)`. We have also kept `Species`, `Island`, and `Sex`. While we will be focusing on analyzing the numeric variables to get a better understanding of how they relate to the penguins' species, we may be interested in the future in conducting a similar analysis to get better understanding of how these numeric variables relate to a penguins' sex or island. Therefore, we will keep the `sex` and `island` variables. We have removed `Region`, `studyName`, `Sample Number`, `Stage`, `Individual ID`, `Clutch Completion`, `Data Egg`, `Delta 15 N`, `Delta 13 C`, and `Comments` as we believe that they are not relevant for our analysis. We will now go ahead and clean the dataset to get it to the version that we want use for our analysis.
 
@@ -114,6 +116,7 @@ Through viewing these boxplots of our numeric variables and how they relate to t
 knitr::kable(head(penguins2))
 ```
 
+
 ### PCA
 
 Our first unsupervised learning technique to learn more about our dataset will be the PCA. To explore the principal components of our data set to explain the variability, we have to isolate the numeric variables in the data set, which are `Culmen Length (mm)`, `Culmen Depth (mm)`, `Flipper Length (mm)length_mm`, `Body Mass (g)`. The reason we can only use numeric variables is because the PCA relies linear algebra calculations to find a linear combination that explains majority of the total variance, which can only be used with numeric data.
@@ -131,21 +134,21 @@ ggcorr(penguins2[,3:6], label = TRUE, label_size = 4, hjust = 0.50, size =2)
 
 From the correlation matrix, we can see that `Body Mass (g)` is very positively correlated with `Flipper Length (mm)`. Also `Culmen Length (mm)` has a somewhat strong correlation with `Flipper Length (mm)`, while `Culmen Depth (mm)` has a negative correlation with all of the variables and does not have a strong correlation with any of the variables.
 
-```{r}
+```{r prcomp}
 pca = prcomp(pca_penguins2, scale = TRUE)
 summary(pca)
 ```
 
 Running the PCA calculations out using the prcomp tool, we see that the first two principal components are responsible for about 88% percent of the data. Let's create a screeplot to visualize this:
 
-```{r, echo = FALSE}
+```{r scree plot, echo = FALSE}
 fviz_eig(pca, addlabels = TRUE,
          ylim = c(0,80))
 ```
 
 Now let's apply the Kaiser rule to select the number of components, we will use in the PCA:
 
-```{r, echo = FALSE}
+```{r kaiser rule, echo = FALSE}
 fviz_eig(pca, 
          addlabels = TRUE, 
          ylim = c(0,4),
@@ -158,13 +161,13 @@ fviz_eig(pca,
 
 Only our first principal component has an eigenvalue greater than one, so our analysis will focus on the first principal component to start, which explains about 69% of the variability and is the maximum variance direction in the data. However, we may still use the second principal component if necessary. Now let's look at what variables contribute the most to our first principal component:
 
-```{r, echo = FALSE}
+```{r component one, echo = FALSE}
 fviz_contrib(pca, choice = "var", axes = 1)
 ```
 
 On average, each variable is expected to contributed 25% to the first principal component. However, only two of those variables `Flipper Length (mm)` and `Body Mass (g)` contribute over 25% to the first principal component. We should note that a reason that this could occur is that `Flipper Length (mm)` and `Body Mass (g)` are highly correlated. Let's visualize this correlated relationship with respect to `Species`:
 
-```{r, message = FALSE, echo = FALSE}
+```{r ggplot1, message = FALSE, echo = FALSE}
 penguins2 %>% 
   ggplot(aes(x = `Flipper Length (mm)`, y = `Body Mass (g)`, color = Species)) +
   geom_point() +
@@ -178,13 +181,13 @@ penguins2 %>%
 
 From this chart, we can see the differentiation of the Gentoo species from the Adelie and Chinstrap species of penguins, as the Gentoo species tends to have a greater body mass and flipper length. However, Adelie and Chinstrap are not differentiable based on their flipper length and body mass relationship. Therefore, the first principal component is an overall measure for the size of the penguins which differentiates the Gentoos. Another thing to note is that `Body Mass (g)` and `Flipper Length (mm)` display a strong positive correlation for each of the species as predicted in the correlation plot. Let's circle back to the second principal component, so that we can find a way to differentiate the Adelie and Chinstrap species as they are similar sizes:
 
-```{r, echo = FALSE}
+```{r component 2, echo = FALSE}
 fviz_contrib(pca, choice = "var", axes = 2)
 ```
 
 In the second principal component, the two other variables contribute more than expected. Let's visualize the relationship of `Culmen Length (mm)` and `Culmen Depth (mm)` with respect to species:
 
-```{r, message = FALSE, echo = FALSE}
+```{r ggplot2, message = FALSE, echo = FALSE}
 penguins2 %>% 
   ggplot(aes(x = `Culmen Depth (mm)`, y = `Culmen Length (mm)`, color = Species)) +
   geom_point() +
@@ -202,7 +205,7 @@ The second principal component is explained primarily by `Culmen Length (mm)` an
 
 After determining the meaning of our first two principal components and using the PCA to attempt to explain the total variance, we will move on to completing a factor analysis in order to better explain the variance and covariance of the observed variables in our data set by a set of fewer latent variables. Let's test if our factor analysis will run:
 
-```{r}
+```{r det}
 det(cor(pca_penguins2))
 ```
 
@@ -210,7 +213,7 @@ Our determinant is positive, so that means our factor analysis will most likely 
 
 We will be using the principal axis factor analysis and maximum likelihood factor analysis methods. We will only be using a total of two factors based on the reasoning from the PCA above. We will also be using the varimax rotational method which will minimize the number of variables that have high loadings on each factor and simplify the interpretation of each factor. We will use the method that has the highest cumulative variance on the second factor.
 
-```{r}
+```{r tests}
 pa <- fa(r = pca_penguins2,
          nfactors =2,
          rotate = "varimax",
@@ -225,14 +228,15 @@ ml <- fa(r = pca_penguins2,
 
 The PA and ML methods both produce a cumulative variance of 0.72, so either method will work in this case. We will use the ML method going ahead. So let's view and interpret the results:
 
-```{r}
+```{r ml}
 ml
 ```
 
-```{r, echo = FALSE}
+```{r fa diagram, echo = FALSE}
 fa.diagram(ml, main="Factor Analysis Charted")
 ```
-```{r, echo = FALSE}
+
+```{r barplots, echo = FALSE}
 barplot(ml$loadings[,1], las=2, main = "Factor Loading 1",col="turquoise", ylim = c(-1, 1), cex.names = 0.35, border = NA)
 barplot(ml$loadings[,2], las=2, main = "Factor Loading 2", col="turquoise", ylim = c(-1, 1), cex.names = 0.35, border = NA)
 ```
