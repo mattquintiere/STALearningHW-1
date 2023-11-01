@@ -3,9 +3,9 @@ title: 'Homework #1'
 author: "Matt Quintiere and Rohit Gunda"
 date: "2023-10-16"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ### Setup
@@ -92,8 +92,9 @@ penguins2 <- penguins2 |>
   )
 duplicated(penguins2)
 ```
- 
+
 Here we did some initial data cleaning by removing rows that had 2 or more NA values, which removed all the NA values in our numeric variable columns. We also shortened the names of the species to make it easier when writing our report. We then checked for duplicates in our data and found none to remove. Now we will check for extreme outliers to remove in our dataset:
+
 ```{r outliers1, echo = FALSE}
 p1 <- ggplot(penguins2,aes(x=Species, y=`Culmen Length (mm)`)) + 
   geom_boxplot() 
@@ -115,7 +116,6 @@ Through viewing these boxplots of our numeric variables and how they relate to t
 ```{r final dataset, echo = FALSE}
 knitr::kable(head(penguins2))
 ```
-
 
 ### PCA
 
@@ -199,7 +199,7 @@ penguins2 %>%
   geom_smooth(method = "lm")
 ```
 
-The second principal component is explained primarily by `Culmen Length (mm)` and `Culmen Depth (mm)`. From looking at the scatter plot above, we can determine that Chinstrap penguins have similar culmen depths as Adelie penguins, but much larger culmen lengths. Also, despite being smaller penguins in size, the Chinstrap and Adelie penguins have a larger culmen depths than Gentoo penguins. Gentoo penguins; however, have a much larger culmen length than Adelie penguins. Also, it is interesting to note that `Culmen Depth (mm)` and `Culmen Length (mm)` were not strongly correlated based on our correlation matrix and were also negatively correlated. However, when the relationship of these variables are seperated by species, there is at least a somewhat strong positive correlation.  
+The second principal component is explained primarily by `Culmen Length (mm)` and `Culmen Depth (mm)`. From looking at the scatter plot above, we can determine that Chinstrap penguins have similar culmen depths as Adelie penguins, but much larger culmen lengths. Also, despite being smaller penguins in size, the Chinstrap and Adelie penguins have a larger culmen depths than Gentoo penguins. Gentoo penguins; however, have a much larger culmen length than Adelie penguins. Also, it is interesting to note that `Culmen Depth (mm)` and `Culmen Length (mm)` were not strongly correlated based on our correlation matrix and were also negatively correlated. However, when the relationship of these variables are seperated by species, there is at least a somewhat strong positive correlation.
 
 ### Factor Analysis
 
@@ -251,7 +251,7 @@ Let's move onto our final unsupervised learning method to further explore our da
 
 ### Cluster Analysis
 
-Initial guess for the number of clusters: 3 (signifies the number of species, as well as the number of islands that our data comes from). However, we believe the clusters are the species that each penguin is, as there is a higher variation between species of penguin versus the island that the penguin resides on. The islands could all have an even distribution of species of penguins, so it makes more sense that species is the cluster we should be focusing on.
+Initial guess for the number of clusters: 3 (signifies the number of species of penguins). However, we believe the clusters are the species that each penguin is, as there is a higher variation between species of penguin versus the island that the penguin resides on. The islands could all have an even distribution of species of penguins, so it makes more sense that species is the cluster we should be focusing on.
 
 ```{r guess-clusters}
 k = 3
@@ -311,11 +311,14 @@ Per our above analysis on the optimal number of clusters, as well as the plot sh
 
 ```{r}
 
-y = 3
+y = 2
+
 fit = kmeans(scale(pca_penguins2), centers=y, nstart=1000)
 groups = fit$cluster
 barplot(table(groups), col="turquoise")
 ```
+
+We see that there is some slight unbalance in the number of observations in each of the clusters. Cluster 2 (likely the cluster excluding the Gentoo species) has over 200 observations, whereas Cluster 1 (Gentoo species cluster) has approximately 125 observations.
 
 Interpret the centers:
 
@@ -334,13 +337,14 @@ To conclude, we originally thought that there would be three clusters, as specie
 
 ### Conclusion
 
-It is essential to outline some of the main distinguishing factors between the 3 species of penguins that we are analyzing. Upon looking at the plot in the PCA which displays the relationship between `Flipper Length (mm)` and `Body Mass (g)` with respect to species, we can see that the Gentoo penguins are in its own group in the top right, while the Adelie and Chinstrap penguins are clumped together, as they are similiar in size. In fact, Gentoo penguins are the third largest species of penguins, while the Chinstrap and Adelie penguins are 5th and 6th largest, respectively. 
+It is essential to outline some of the main distinguishing factors between the 3 species of penguins that we are analyzing. Upon looking at the plot in the PCA which displays the relationship between `Flipper Length (mm)` and `Body Mass (g)` with respect to species, we can see that the Gentoo penguins are in its own group in the top right, while the Adelie and Chinstrap penguins are clumped together, as they are similiar in size. In fact, Gentoo penguins are the third largest species of penguins, while the Chinstrap and Adelie penguins are 5th and 6th largest, respectively.
 
-Adelie and Chinstrap penguins are differentiated by the shape of their culmens. Chinstraps have similiar culmen depths as Adelies, but longer culmen lengths. However, Chinstraps have similiar culmen lengths as Gentoos, but longer culmen depths. According to the Factor Analysis, the `Culmen Length (mm)` variable was not useful, but that was proven false in PCA. Therefore, we can conclude that all four of the numeric variables that we explored are useful in predicting the species of a penguin. Our unsupervised learning techniques proved that we can reduced these four variables into the two-dimensions of penguin size and culmen shape to complete the analysis. 
+Adelie and Chinstrap penguins are differentiated by the shape of their culmens. Chinstraps have similiar culmen depths as Adelies, but longer culmen lengths. However, Chinstraps have similiar culmen lengths as Gentoos, but longer culmen depths. According to the Factor Analysis, the `Culmen Length (mm)` variable was not useful, but that was proven false in PCA. Therefore, we can conclude that all four of the numeric variables that we explored are useful in predicting the species of a penguin. Our unsupervised learning techniques proved that we can reduced these four variables into the two-dimensions of penguin size and culmen shape to complete the analysis.
 
 Further directions would include creating a model to predict a penguins species using these numeric variables, as well as exploring the `Island` and `Sex` variables of our data set in relation to the numeric variables.
 
 ### Sources
-1) [penguins_raw data set](https://allisonhorst.github.io/palmerpenguins/)
-2) [Kaiser Rule for PCA](https://statisticsglobe.com/scree-plot-pca)
-3) [PA and ML Methods for Factor Analysis](https://www.youtube.com/watch?v=kbJMz0KzMnI)
+
+1)  [penguins_raw data set](https://allisonhorst.github.io/palmerpenguins/)
+2)  [Kaiser Rule for PCA](https://statisticsglobe.com/scree-plot-pca)
+3)  [PA and ML Methods for Factor Analysis](https://www.youtube.com/watch?v=kbJMz0KzMnI)
