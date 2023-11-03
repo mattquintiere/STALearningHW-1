@@ -251,14 +251,16 @@ Let's move onto our final unsupervised learning method to further explore our da
 
 ### Cluster Analysis
 
-Initial guess for the number of clusters: 3 (signifies the number of species of penguins). However, we believe the clusters are the species that each penguin is, as there is a higher variation between species of penguin versus the island that the penguin resides on. The islands could all have an even distribution of species of penguins, so it makes more sense that species is the cluster we should be focusing on.
+Initial guess for the number of clusters: 3 (we chose 3 as it signifies the number of species of penguins). However, we believe the clusters are the species that each penguin is, as there is a higher variation between species of penguin versus the island that the penguin resides on. The islands could all have an even distribution of species of penguins, so it makes more sense that species is the cluster we should be focusing on.
 
 ```{r guess-clusters, echo = FALSE}
 k = 3
 fit = kmeans(scale(pca_penguins2), centers=k, nstart=1000)
 groups = fit$cluster
-barplot(table(groups), col="turquoise", border = NA, main ="TITLE")
+barplot(table(groups), col="turquoise", border = NA, main ="Number of observations in each cluster")
 ```
+
+This chart explains how many observations are in each cluster. Cluster 1 has approximately 120 observations, Cluster 2 has more than 120 observations, and Cluster 3 has approximately 80 observations.
 
 Now to interpret the centers:
 
@@ -267,11 +269,11 @@ Now to interpret the centers:
 centers=fit$centers
 
 barplot(centers[1,], las=2, col="turquoise",cex.names = 0.35, border = NA,
-        main= "TITLE")
+        main= "Cluster 1 Centers")
 barplot(centers[2,], las=2, col="turquoise",cex.names = 0.35, border = NA,
-        main = "TITLE")
+        main = "Cluster 2 Centers")
 barplot(centers[3,], las=2, col="turquoise",cex.names = 0.35, border = NA,
-        main = "TITLE")
+        main = "Cluster 3 Centers")
 
 
 ```
@@ -302,9 +304,7 @@ withinss(fit.ker)
 object.ker = list(data = pca_penguins2, cluster = fit.ker@.Data)
 
 fviz_cluster(object.ker, geom = c("point"), ellipse=F,pointsize=1) +
-  theme_minimal() #+
-  #geom_text(label=names,hjust=0, vjust=0,size=2,check_overlap = T) +
-  #scale_fill_brewer(palette="Paired")
+  theme_minimal()
 ```
 
 As seen by the above Kernel k-means analysis, we are using 2 of the principal components to visualize the data. Again, the first 2 principal components make up 88% of the variability. In the above plot, we see 2 very clear groups of points. In the group on the left, it is mainly dominated by clusters 1 and 3, but the one on the right is dominated mainly by points from cluster 2. We found this very interesting as we had expected to see 3 clear clusters, one for each species. However, we only see two, and in one of the groups, points from two clusters are mixed quite evenly. However, k-means are mainly used for highly non-linear data, so maybe another approach to identify clusters may be beneficial to use.
@@ -317,7 +317,7 @@ y = 2
 
 fit = kmeans(scale(pca_penguins2), centers=y, nstart=1000)
 groups = fit$cluster
-barplot(table(groups), col="turquoise", main ="TITLE", border = NA)
+barplot(table(groups), col="turquoise", main ="Number of observations in each cluster", border = NA)
 ```
 
 We see that there is some slight unbalance in the number of observations in each of the clusters. Cluster 2 (likely the cluster excluding the Gentoo species) has over 200 observations, whereas Cluster 1 (Gentoo species cluster) has approximately 125 observations.
@@ -329,9 +329,9 @@ Interpret the centers:
 centers=fit$centers
 
 barplot(centers[1,], las=2, col="turquoise",cex.names = 0.35, border = NA,
-        main = "TITLE")
+        main = "Cluster 1 Centers")
 barplot(centers[2,], las=2, col="turquoise", cex.names = 0.35, border = NA,
-        main = "TITLE")
+        main = "Cluster 2 Centers")
 
 ```
 
