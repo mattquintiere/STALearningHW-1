@@ -352,3 +352,4 @@ Further directions would include creating a model to predict a penguins species 
 1)  [penguins_raw data set](https://allisonhorst.github.io/palmerpenguins/)
 2)  [Kaiser Rule for PCA](https://statisticsglobe.com/scree-plot-pca)
 3)  [PA and ML Methods for Factor Analysis](https://www.youtube.com/watch?v=kbJMz0KzMnI)
+4)  Previous Computer Labs
