@@ -268,11 +268,11 @@ Now to interpret the centers:
 
 centers=fit$centers
 
-barplot(centers[1,], las=2, col="turquoise",cex.names = 0.35, border = NA,
+barplot(centers[1,], las=2, col="turquoise", ylim= c(-1,1), cex.names = 0.35, border = NA,
         main= "Cluster 1 Centers")
-barplot(centers[2,], las=2, col="turquoise",cex.names = 0.35, border = NA,
+barplot(centers[2,], las=2, col="turquoise", ylim= c(-1,1), cex.names = 0.35, border = NA,
         main = "Cluster 2 Centers")
-barplot(centers[3,], las=2, col="turquoise",cex.names = 0.35, border = NA,
+barplot(centers[3,], las=2, col="turquoise", ylim= c(-1,1), cex.names = 0.35, border = NA,
         main = "Cluster 3 Centers")
 
 
@@ -328,9 +328,9 @@ Interpret the centers:
 
 centers=fit$centers
 
-barplot(centers[1,], las=2, col="turquoise",cex.names = 0.35, border = NA,
+barplot(centers[1,], las=2, col="turquoise", ylim= c(-1,1), cex.names = 0.35, border = NA,
         main = "Cluster 1 Centers")
-barplot(centers[2,], las=2, col="turquoise", cex.names = 0.35, border = NA,
+barplot(centers[2,], las=2, col="turquoise", ylim= c(-1,1), cex.names = 0.35, border = NA,
         main = "Cluster 2 Centers")
 
 ```
