@@ -3,9 +3,9 @@ title: 'Homework #1'
 author: "Matt Quintiere and Rohit Gunda"
 date: "2023-10-16"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ### Setup
